@@ -13,13 +13,28 @@ def index():
 @app.post('/')
 def handle_search():
     query = request.form.get('query', '')
-    return render_template(
-        'index.html', query=query, results=[], from_=0, total=0)
+    results = es.search(
+        query={
+            'match': {
+                'name': {
+                    'query': query
+                }
+            }
+        }
+    )
+    return render_template('index.html',
+                           query=query,
+                           results=results['hits']['hits'],
+                           from_=0,
+                           total=results['hits']['total']['value'])
 
 
 @app.get('/document/<id>')
 def get_document(id):
-    return 'Document not found'
+    document = es.retrieve_document(id)
+    title = document['_source']['name']
+    paragraphs = document['_source']['content'].split('\n')
+    return render_template('document.html', title=title, paragraphs=paragraphs)
 
 
 @app.cli.command()
